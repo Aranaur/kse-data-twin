@@ -3132,18 +3132,32 @@ window.QuartoSupport = function () {
       });
     </script>
     <script>
-    // Ключ ведучого передається в адресі слайдів (?key=...) і не зберігається у файлі.
+    // Ключ ведучого передається в адресі слайдів (?key=...), браузер його запам'ятовує.
+    // У самому файлі ключа немає.
     window.addEventListener("load", function () {
-      var key = new URLSearchParams(location.search).get("key");
+      var fromUrl = new URLSearchParams(location.search).get("key");
+      if (fromUrl) localStorage.setItem("presenter-key", fromUrl);
+      var key = fromUrl || localStorage.getItem("presenter-key");
       if (!key) return;
+      var suffix = "&key=" + encodeURIComponent(key);
+
       function apply() {
         document.querySelectorAll('section[data-background-iframe*="screen=1"]').forEach(function (slide) {
           var url = slide.getAttribute("data-background-iframe");
-          slide.setAttribute("data-background-iframe", url + "&key=" + encodeURIComponent(key));
+          if (url.indexOf("key=") === -1) slide.setAttribute("data-background-iframe", url + suffix);
+        });
+        // Якщо слайд уже завантажився, наприклад після оновлення сторінки на ньому.
+        document.querySelectorAll('.backgrounds iframe').forEach(function (frame) {
+          var pending = frame.getAttribute("data-src") || "";
+          if (pending.indexOf("screen=1") === -1 || pending.indexOf("key=") !== -1) return;
+          frame.setAttribute("data-src", pending + suffix);
+          if (frame.getAttribute("src")) frame.setAttribute("src", pending + suffix);
         });
       }
+
       if (Reveal.isReady()) apply();
       else Reveal.on("ready", apply);
+      Reveal.on("slidechanged", apply);
     });
     </script>
     <script id="quarto-html-after-body" type="application/javascript">
