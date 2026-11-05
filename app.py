@@ -188,7 +188,13 @@ def server(input, output, session):
         reactive.invalidate_later(3)
         who = input.client_id() if "client_id" in input else None
         if who:
-            me_state.set(room.me(who))
+            # Value.set порівнює об'єкти за тотожністю, тож новий словник
+            # щоразу перемальовував би форму й скидав повзунки.
+            current = room.me(who)
+            with reactive.isolate():
+                changed = current != me_state()
+            if changed:
+                me_state.set(current)
 
     @output
     @render.ui
